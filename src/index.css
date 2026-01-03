@@ -165,15 +165,23 @@
   opacity: 0;
 }
 
-/* Mapbox overrides */
-.mapboxgl-map {
+/* Leaflet overrides */
+.leaflet-container {
   font-family: 'Inter', sans-serif;
+  background: hsl(220 25% 10%);
 }
 
-.mapboxgl-ctrl-logo {
-  display: none !important;
-}
-
-.mapboxgl-ctrl-attrib {
+.leaflet-control-attribution {
   opacity: 0.5;
+  background: hsl(220 25% 10%) !important;
+  color: hsl(215 15% 55%) !important;
+}
+
+.leaflet-control-attribution a {
+  color: hsl(325 90% 60%) !important;
+}
+
+.plane-icon {
+  background: none !important;
+  border: none !important;
 }
