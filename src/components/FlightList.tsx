@@ -1,6 +1,8 @@
+import { useNavigate } from 'react-router-dom';
 import type { Flight } from '@/types/flight';
 import { formatDuration, formatCurrency, estimateFlightCost, calculateDistance } from '@/lib/flightData';
-import { Plane, Clock, Route, DollarSign } from 'lucide-react';
+import { getCountryFromCoords, getFlagEmoji } from '@/lib/countries';
+import { Plane, Clock, Route, DollarSign, ExternalLink } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface FlightListProps {
@@ -10,6 +12,13 @@ interface FlightListProps {
 }
 
 export function FlightList({ flights, selectedFlight, onSelectFlight }: FlightListProps) {
+  const navigate = useNavigate();
+
+  const handleFlightClick = (flight: Flight, index: number) => {
+    onSelectFlight(flight);
+    navigate(`/flight/${index}`);
+  };
+
   return (
     <div className="glass-card animate-fade-in-delay-3">
       <div className="p-4 border-b border-border">
@@ -17,6 +26,9 @@ export function FlightList({ flights, selectedFlight, onSelectFlight }: FlightLi
           <Plane className="w-5 h-5 text-primary" />
           Járatok ({flights.length})
         </h3>
+        <p className="text-sm text-muted-foreground mt-1">
+          Kattints egy járatra a részletekért
+        </p>
       </div>
       
       <ScrollArea className="h-[400px]">
@@ -28,12 +40,14 @@ export function FlightList({ flights, selectedFlight, onSelectFlight }: FlightLi
             );
             const cost = estimateFlightCost(flight.durationMinutes);
             const isSelected = selectedFlight === flight;
+            const startCountry = getCountryFromCoords(flight.startLat, flight.startLon);
+            const endCountry = getCountryFromCoords(flight.endLat, flight.endLon);
 
             return (
               <button
                 key={`${flight.icao}-${index}`}
-                onClick={() => onSelectFlight(flight)}
-                className={`w-full p-4 text-left transition-all hover:bg-muted/50 ${
+                onClick={() => handleFlightClick(flight, index)}
+                className={`w-full p-4 text-left transition-all hover:bg-muted/50 group ${
                   isSelected ? 'bg-primary/10 border-l-2 border-l-primary' : ''
                 }`}
               >
@@ -46,7 +60,15 @@ export function FlightList({ flights, selectedFlight, onSelectFlight }: FlightLi
                       {flight.type}
                     </span>
                   </div>
-                  <span className="text-xs text-muted-foreground">
+                  <ExternalLink className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+
+                {/* Route with flags */}
+                <div className="flex items-center gap-2 mb-2 text-sm">
+                  <span>{getFlagEmoji(startCountry.code)}</span>
+                  <span className="text-muted-foreground">→</span>
+                  <span>{getFlagEmoji(endCountry.code)}</span>
+                  <span className="text-muted-foreground ml-auto">
                     {flight.startTime.toLocaleDateString('hu-HU', {
                       month: 'short',
                       day: 'numeric',

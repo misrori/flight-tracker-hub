@@ -19,7 +19,14 @@ export async function loadFlightData(): Promise<Flight[]> {
             let routeData: FlightPoint[] = [];
             try {
               if (row.route_data) {
-                routeData = JSON.parse(row.route_data);
+                const parsed = JSON.parse(row.route_data);
+                // Data format: [[lat, lon, alt, speed, timestamp], ...]
+                routeData = parsed.map((point: number[]) => ({
+                  lat: point[0],
+                  lon: point[1],
+                  alt: point[2],
+                  timestamp: point[4],
+                }));
               }
             } catch (e) {
               console.warn('Failed to parse route data:', e);

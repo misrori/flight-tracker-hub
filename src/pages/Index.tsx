@@ -2,10 +2,8 @@ import { useState, useEffect } from 'react';
 import { Header } from '@/components/Header';
 import { StatCard } from '@/components/StatCard';
 import { FlightChart } from '@/components/FlightChart';
-import { FlightMap } from '@/components/FlightMap';
 import { FlightList } from '@/components/FlightList';
 import { ViewToggle } from '@/components/ViewToggle';
-import { MapTokenInput } from '@/components/MapTokenInput';
 import { 
   loadFlightData, 
   getFlightStats, 
@@ -16,7 +14,8 @@ import {
   formatCurrency 
 } from '@/lib/flightData';
 import type { Flight, FlightStats, DailyFlightData, MonthlyFlightData, LocationData } from '@/types/flight';
-import { Plane, Clock, MapPin, Banknote, Loader2 } from 'lucide-react';
+import { Plane, Clock, MapPin, Banknote, Loader2, Map } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const Index = () => {
   const [flights, setFlights] = useState<Flight[]>([]);
@@ -27,16 +26,8 @@ const Index = () => {
   const [selectedFlight, setSelectedFlight] = useState<Flight | null>(null);
   const [chartView, setChartView] = useState<'daily' | 'monthly'>('daily');
   const [loading, setLoading] = useState(true);
-  const [mapboxToken, setMapboxToken] = useState<string>('');
 
   useEffect(() => {
-    // Check for saved token
-    const savedToken = localStorage.getItem('mapbox_token');
-    if (savedToken) {
-      setMapboxToken(savedToken);
-    }
-
-    // Load flight data
     loadFlightData()
       .then(data => {
         setFlights(data);
@@ -104,19 +95,25 @@ const Index = () => {
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Map Section */}
+          {/* Map placeholder & Charts */}
           <div className="lg:col-span-2 space-y-6">
-            {mapboxToken ? (
-              <FlightMap
-                flights={flights}
-                locations={locations}
-                selectedFlight={selectedFlight}
-                onSelectFlight={setSelectedFlight}
-                mapboxToken={mapboxToken}
-              />
-            ) : (
-              <MapTokenInput onTokenSubmit={setMapboxToken} />
-            )}
+            {/* Map info card */}
+            <div className="glass-card p-8 text-center animate-fade-in">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
+                <Map className="w-8 h-8 text-primary" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2">Interaktív térkép</h3>
+              <p className="text-muted-foreground mb-4">
+                Kattints egy járatra a listából az útvonal részletes megtekintéséhez és animálásához.
+              </p>
+              <div className="flex flex-wrap justify-center gap-2 text-sm">
+                {locations.slice(0, 5).map((loc, i) => (
+                  <span key={i} className="px-3 py-1 rounded-full bg-primary/10 text-primary">
+                    {loc.count}× ({loc.lat.toFixed(1)}°, {loc.lon.toFixed(1)}°)
+                  </span>
+                ))}
+              </div>
+            </div>
 
             {/* Chart Section */}
             <div className="flex items-center justify-between mb-4">
@@ -138,6 +135,17 @@ const Index = () => {
               onSelectFlight={setSelectedFlight}
             />
           </div>
+        </div>
+
+        {/* Quick link to analytics */}
+        <div className="mt-8 text-center">
+          <Link 
+            to="/analytics" 
+            className="inline-flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
+          >
+            <span>Részletes elemzések és országstatisztikák megtekintése</span>
+            <span>→</span>
+          </Link>
         </div>
 
         {/* Footer */}
