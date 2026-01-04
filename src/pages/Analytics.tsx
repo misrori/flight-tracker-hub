@@ -6,31 +6,39 @@ import { ViewToggle } from '@/components/ViewToggle';
 import { StatCard } from '@/components/StatCard';
 import { AircraftFilter } from '@/components/AircraftFilter';
 import { CountryMap } from '@/components/CountryMap';
-import { 
-  loadFlightData, 
-  getFlightStats, 
-  getDailyFlightData, 
+import {
+  loadFlightData,
+  getFlightStats,
+  getDailyFlightData,
   getMonthlyFlightData,
   getAircraftList,
   getCountryVisits,
+  getOwnerList,
+  getRegistrationsByOwner,
   formatDuration,
-  formatCurrency 
+  formatCurrency
 } from '@/lib/flightData';
 import type { Flight, DailyFlightData, MonthlyFlightData, FlightStats, AircraftInfo } from '@/types/flight';
-import { Loader2, Globe, TrendingUp, Clock, Banknote } from 'lucide-react';
+import { Loader2, Globe, TrendingUp, Clock, Banknote, MapPin, Map as MapIcon } from 'lucide-react';
+import { FilterPanel } from '@/components/FilterPanel';
+import { FlightPointMap } from '@/components/FlightPointMap';
 
 const Analytics = () => {
   const [allFlights, setAllFlights] = useState<Flight[]>([]);
+  const [owners, setOwners] = useState<string[]>([]);
+  const [selectedOwner, setSelectedOwner] = useState<string | null>(null);
   const [aircraftList, setAircraftList] = useState<AircraftInfo[]>([]);
   const [selectedAircraft, setSelectedAircraft] = useState<string | null>(null);
   const [chartView, setChartView] = useState<'daily' | 'monthly'>('monthly');
+  const [mapMode, setMapMode] = useState<'countries' | 'points'>('countries');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadFlightData()
       .then(data => {
         setAllFlights(data);
-        setAircraftList(getAircraftList(data));
+        setOwners(getOwnerList(data));
+        setAircraftList(getRegistrationsByOwner(data, null));
         setLoading(false);
       })
       .catch(err => {
@@ -39,10 +47,22 @@ const Analytics = () => {
       });
   }, []);
 
+  const handleOwnerChange = (owner: string | null) => {
+    setSelectedOwner(owner);
+    setSelectedAircraft(null);
+    setAircraftList(getRegistrationsByOwner(allFlights, owner));
+  };
+
   const flights = useMemo(() => {
-    if (!selectedAircraft) return allFlights;
-    return allFlights.filter(f => f.registration === selectedAircraft);
-  }, [allFlights, selectedAircraft]);
+    let filtered = allFlights;
+    if (selectedOwner) {
+      filtered = filtered.filter(f => f.owner === selectedOwner);
+    }
+    if (selectedAircraft) {
+      filtered = filtered.filter(f => f.registration === selectedAircraft);
+    }
+    return filtered;
+  }, [allFlights, selectedOwner, selectedAircraft]);
 
   const stats = useMemo(() => getFlightStats(flights), [flights]);
   const dailyData = useMemo(() => getDailyFlightData(flights), [flights]);
@@ -63,7 +83,7 @@ const Analytics = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
+
       <main className="container mx-auto px-4 py-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
@@ -73,7 +93,7 @@ const Analytics = () => {
             </p>
           </div>
           <div className="w-full sm:w-64">
-            <AircraftFilter 
+            <AircraftFilter
               aircraft={aircraftList}
               selectedAircraft={selectedAircraft}
               onSelectAircraft={setSelectedAircraft}
@@ -105,19 +125,38 @@ const Analytics = () => {
               icon={Clock}
               delay={200}
             />
-            <StatCard
-              title="Becsült összköltség"
-              value={formatCurrency(stats.estimatedCostEur)}
-              subtitle="AI becslés alapján"
-              icon={Banknote}
-              delay={300}
-            />
           </div>
         )}
 
-        {/* Country Map */}
-        <div className="mb-8">
-          <CountryMap countryVisits={countryVisits} />
+        {/* Map Visualization */}
+        <div className="mb-8 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold">Térkép vizualizáció</h2>
+            <div className="flex bg-muted p-1 rounded-lg">
+              <button
+                onClick={() => setMapMode('countries')}
+                className={`flex items-center gap-2 px-3 py-1 rounded-md text-sm transition-all ${mapMode === 'countries' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground'
+                  }`}
+              >
+                <MapIcon className="w-4 h-4" />
+                Országstatisztika
+              </button>
+              <button
+                onClick={() => setMapMode('points')}
+                className={`flex items-center gap-2 px-3 py-1 rounded-md text-sm transition-all ${mapMode === 'points' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground'
+                  }`}
+              >
+                <MapPin className="w-4 h-4" />
+                Járat pontok
+              </button>
+            </div>
+          </div>
+
+          {mapMode === 'countries' ? (
+            <CountryMap countryVisits={countryVisits} />
+          ) : (
+            <FlightPointMap flights={flights} />
+          )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -135,6 +174,7 @@ const Analytics = () => {
             <FlightChart
               dailyData={dailyData}
               monthlyData={monthlyData}
+              flights={flights}
               view={chartView}
             />
           </div>
@@ -146,7 +186,7 @@ const Analytics = () => {
             NERLines - Repülési adatok elemzése és vizualizációja
           </p>
           <p className="mt-1">
-            Adatforrás: ADS-B Exchange | Költségbecslés AI alapján (~€5,000/óra)
+            Adatforrás: ADS-B Exchange
           </p>
         </footer>
       </main>

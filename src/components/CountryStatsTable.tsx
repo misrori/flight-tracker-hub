@@ -40,13 +40,43 @@ const countryFlags: Record<string, string> = {
   'Törökország': '🇹🇷',
   'Egyesült Arab Emírségek': '🇦🇪',
   'Monaco': '🇲🇨',
-  'Montenegró': '🇲🇪',
-  'Albánia': '🇦🇱',
-  'Izland': '🇮🇸',
-  'Norvégia': '🇳🇴',
-  'Svédország': '🇸🇪',
-  'Finnország': '🇫🇮',
-  'Dánia': '🇩🇰',
+  // English names from CSV
+  'Hungary': '🇭🇺',
+  'Germany': '🇩🇪',
+  'Switzerland': '🇨🇭',
+  'United Kingdom': '🇬🇧',
+  'Romania': '🇷🇴',
+  'Bulgaria': '🇧🇬',
+  'Seychelles': '🇸🇨',
+  'Spain': '🇪🇸',
+  'Italy': '🇮🇹',
+  'France': '🇫🇷',
+  'Austria': '🇦🇹',
+  'Croatia': '🇭🇷',
+  'Greece': '🇬🇷',
+  'Netherlands': '🇳🇱',
+  'Poland': '🇵🇱',
+  'Czechia': '🇨🇿',
+  'Slovakia': '🇸🇰',
+  'Serbia': '🇷🇸',
+  'Portugal': '🇵🇹',
+  'Türkiye': '🇹🇷',
+  'USA': '🇺🇸',
+  'United States': '🇺🇸',
+  'Canada': '🇨🇦',
+  'Maldives': '🇲🇻',
+  'South Africa': '🇿🇦',
+  'Tanzania': '🇹🇿',
+  'Armenia': '🇦🇲',
+  'China': '🇨🇳',
+  'Hong Kong': '🇭🇰',
+  'Philippines': '🇵🇭',
+  'Vietnam': '🇻🇳',
+  'Viet Nam': '🇻🇳',
+  'Taiwan': '🇹🇼',
+  'Malta': '🇲🇹',
+  'Iceland': '🇮🇸',
+  'Albania': '🇦🇱',
 };
 
 function getFlag(country: string): string {
@@ -68,7 +98,7 @@ export function CountryStatsTable({ flights }: CountryStatsTableProps) {
           Indulások és érkezések országonként
         </p>
       </div>
-      
+
       <ScrollArea className="h-[400px]">
         <Table>
           <TableHeader>
@@ -101,7 +131,7 @@ export function CountryStatsTable({ flights }: CountryStatsTableProps) {
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-2">
                     <div className="w-16 h-2 bg-muted rounded-full overflow-hidden">
-                      <div 
+                      <div
                         className="h-full bg-primary rounded-full"
                         style={{ width: `${(cv.visits / totalVisits) * 100}%` }}
                       />

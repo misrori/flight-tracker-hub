@@ -6,33 +6,41 @@ import { FlightList } from '@/components/FlightList';
 import { ViewToggle } from '@/components/ViewToggle';
 import { AircraftFilter } from '@/components/AircraftFilter';
 import { CountryMap } from '@/components/CountryMap';
-import { 
-  loadFlightData, 
-  getFlightStats, 
-  getDailyFlightData, 
+import {
+  loadFlightData,
+  getFlightStats,
+  getDailyFlightData,
   getMonthlyFlightData,
   getAircraftList,
   getCountryVisits,
+  getOwnerList,
+  getRegistrationsByOwner,
   formatDuration,
-  formatCurrency 
+  formatCurrency
 } from '@/lib/flightData';
 import type { Flight, FlightStats, DailyFlightData, MonthlyFlightData, AircraftInfo } from '@/types/flight';
-import { Plane, Clock, MapPin, Banknote, Loader2 } from 'lucide-react';
+import { Plane, Clock, MapPin, Banknote, Loader2, List, Map as MapIcon } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { FilterPanel } from '@/components/FilterPanel';
+import { FlightPointMap } from '@/components/FlightPointMap';
 
 const Index = () => {
   const [allFlights, setAllFlights] = useState<Flight[]>([]);
+  const [owners, setOwners] = useState<string[]>([]);
+  const [selectedOwner, setSelectedOwner] = useState<string | null>(null);
   const [aircraftList, setAircraftList] = useState<AircraftInfo[]>([]);
   const [selectedAircraft, setSelectedAircraft] = useState<string | null>(null);
   const [selectedFlight, setSelectedFlight] = useState<Flight | null>(null);
   const [chartView, setChartView] = useState<'daily' | 'monthly'>('monthly');
+  const [mapMode, setMapMode] = useState<'countries' | 'points'>('countries');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadFlightData()
       .then(data => {
         setAllFlights(data);
-        setAircraftList(getAircraftList(data));
+        setOwners(getOwnerList(data));
+        setAircraftList(getRegistrationsByOwner(data, null));
         setLoading(false);
       })
       .catch(err => {
@@ -41,11 +49,23 @@ const Index = () => {
       });
   }, []);
 
-  // Filter flights based on selected aircraft
+  const handleOwnerChange = (owner: string | null) => {
+    setSelectedOwner(owner);
+    setSelectedAircraft(null);
+    setAircraftList(getRegistrationsByOwner(allFlights, owner));
+  };
+
+  // Filter flights based on selected owner and aircraft
   const flights = useMemo(() => {
-    if (!selectedAircraft) return allFlights;
-    return allFlights.filter(f => f.registration === selectedAircraft);
-  }, [allFlights, selectedAircraft]);
+    let filtered = allFlights;
+    if (selectedOwner) {
+      filtered = filtered.filter(f => f.owner === selectedOwner);
+    }
+    if (selectedAircraft) {
+      filtered = filtered.filter(f => f.registration === selectedAircraft);
+    }
+    return filtered;
+  }, [allFlights, selectedOwner, selectedAircraft]);
 
   const stats = useMemo(() => getFlightStats(flights), [flights]);
   const dailyData = useMemo(() => getDailyFlightData(flights), [flights]);
@@ -66,7 +86,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
+
       <main className="container mx-auto px-4 py-8">
         {/* Stats Grid */}
         {stats && (
@@ -86,18 +106,11 @@ const Index = () => {
               delay={100}
             />
             <StatCard
-              title="Megtett távolság"
+              title="Összes távolság"
               value={`${stats.totalDistanceKm.toLocaleString('hu-HU')} km`}
               subtitle={`${stats.uniqueCountries} ország`}
               icon={MapPin}
               delay={200}
-            />
-            <StatCard
-              title="Becsült költség"
-              value={formatCurrency(stats.estimatedCostEur)}
-              subtitle="~€5,000/óra alapján"
-              icon={Banknote}
-              delay={300}
             />
           </div>
         )}
@@ -106,8 +119,34 @@ const Index = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Map & Charts */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Country Map */}
-            <CountryMap countryVisits={countryVisits} />
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold">Térkép vizualizáció</h2>
+              <div className="flex bg-muted p-1 rounded-lg">
+                <button
+                  onClick={() => setMapMode('countries')}
+                  className={`flex items-center gap-2 px-3 py-1 rounded-md text-sm transition-all ${mapMode === 'countries' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground'
+                    }`}
+                >
+                  <MapIcon className="w-4 h-4" />
+                  Országok
+                </button>
+                <button
+                  onClick={() => setMapMode('points')}
+                  className={`flex items-center gap-2 px-3 py-1 rounded-md text-sm transition-all ${mapMode === 'points' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground'
+                    }`}
+                >
+                  <MapPin className="w-4 h-4" />
+                  Pontok
+                </button>
+              </div>
+            </div>
+
+            {/* Conditional Map View */}
+            {mapMode === 'countries' ? (
+              <CountryMap countryVisits={countryVisits} />
+            ) : (
+              <FlightPointMap flights={flights} />
+            )}
 
             {/* Chart Section */}
             <div className="flex items-center justify-between mb-4">
@@ -117,19 +156,23 @@ const Index = () => {
             <FlightChart
               dailyData={dailyData}
               monthlyData={monthlyData}
+              flights={flights}
               view={chartView}
             />
           </div>
 
           {/* Right sidebar */}
           <div className="lg:col-span-1 space-y-6">
-            {/* Aircraft Filter */}
-            <AircraftFilter 
+            {/* Filter Panel */}
+            <FilterPanel
+              owners={owners}
+              selectedOwner={selectedOwner}
+              onSelectOwner={handleOwnerChange}
               aircraft={aircraftList}
               selectedAircraft={selectedAircraft}
               onSelectAircraft={setSelectedAircraft}
             />
-            
+
             {/* Flight List */}
             <FlightList
               flights={flights}
@@ -141,8 +184,8 @@ const Index = () => {
 
         {/* Quick link to analytics */}
         <div className="mt-8 text-center">
-          <Link 
-            to="/analytics" 
+          <Link
+            to="/analytics"
             className="inline-flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
           >
             <span>Részletes elemzések és országstatisztikák megtekintése</span>
@@ -156,7 +199,7 @@ const Index = () => {
             NERLines - Repülési adatok elemzése és vizualizációja
           </p>
           <p className="mt-1">
-            Adatforrás: ADS-B Exchange | Költségbecslés AI alapján
+            Adatforrás: ADS-B Exchange
           </p>
         </footer>
       </main>

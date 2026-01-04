@@ -1,4 +1,4 @@
-import { Plane, BarChart3, Home } from 'lucide-react';
+import { Plane, BarChart3, Home, Database } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
@@ -8,6 +8,7 @@ export function Header() {
   const navItems = [
     { href: '/', label: 'Áttekintés', icon: Home },
     { href: '/analytics', label: 'Elemzések', icon: BarChart3 },
+    { href: '/raw-data', label: 'Nyers adatok', icon: Database },
   ];
 
   return (
@@ -38,8 +39,8 @@ export function Header() {
                 to={item.href}
                 className={cn(
                   "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
-                  isActive 
-                    ? "bg-primary/10 text-primary" 
+                  isActive
+                    ? "bg-primary/10 text-primary"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted"
                 )}
               >
@@ -51,10 +52,6 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-4">
-          <div className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground">
-            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-            <span>Élő adatok</span>
-          </div>
         </div>
       </div>
     </header>

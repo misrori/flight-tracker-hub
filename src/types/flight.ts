@@ -16,13 +16,15 @@ export interface Flight {
   startCountry: string;
   endCity: string;
   endCountry: string;
+  owner: string;
+  icao: string;
 }
 
 export interface FlightStats {
   totalFlights: number;
   totalDurationMinutes: number;
   totalDistanceKm: number;
-  estimatedCostEur: number;
+  totalCost: number;
   uniqueCountries: number;
   averageFlightDuration: number;
 }

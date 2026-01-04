@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { loadFlightData, formatDuration, formatCurrency, estimateFlightCost, calculateDistance } from '@/lib/flightData';
 import type { Flight } from '@/types/flight';
-import { Loader2, ArrowLeft, Plane, Clock, Route, DollarSign, Calendar, ArrowRight, Play, Pause, RotateCcw } from 'lucide-react';
+import { Loader2, ArrowLeft, Plane, Clock, Route, Calendar, ArrowRight, Play, Pause, RotateCcw, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 
@@ -32,6 +32,43 @@ const countryFlags: Record<string, string> = {
   'Törökország': '🇹🇷',
   'Egyesült Arab Emírségek': '🇦🇪',
   'Monaco': '🇲🇨',
+  // English names from CSV
+  'Hungary': '🇭🇺',
+  'Germany': '🇩🇪',
+  'Switzerland': '🇨🇭',
+  'United Kingdom': '🇬🇧',
+  'Romania': '🇷🇴',
+  'Bulgaria': '🇧🇬',
+  'Seychelles': '🇸🇨',
+  'Spain': '🇪🇸',
+  'Italy': '🇮🇹',
+  'France': '🇫🇷',
+  'Austria': '🇦🇹',
+  'Croatia': '🇭🇷',
+  'Greece': '🇬🇷',
+  'Netherlands': '🇳🇱',
+  'Poland': '🇵🇱',
+  'Czechia': '🇨🇿',
+  'Slovakia': '🇸🇰',
+  'Serbia': '🇷🇸',
+  'Portugal': '🇵🇹',
+  'Türkiye': '🇹🇷',
+  'USA': '🇺🇸',
+  'United States': '🇺🇸',
+  'Canada': '🇨🇦',
+  'Maldives': '🇲🇻',
+  'South Africa': '🇿🇦',
+  'Tanzania': '🇹🇿',
+  'Armenia': '🇦🇲',
+  'China': '🇨🇳',
+  'Hong Kong': '🇭🇰',
+  'Philippines': '🇵🇭',
+  'Vietnam': '🇻🇳',
+  'Viet Nam': '🇻🇳',
+  'Taiwan': '🇹🇼',
+  'Malta': '🇲🇹',
+  'Iceland': '🇮🇸',
+  'Albania': '🇦🇱',
 };
 
 function getFlag(country: string): string {
@@ -154,42 +191,42 @@ const FlightDetail = () => {
     const padding = 60;
     const width = 800;
     const height = 400;
-    
+
     const minLon = Math.min(coordinates[0].lon, coordinates[1].lon) - 2;
     const maxLon = Math.max(coordinates[0].lon, coordinates[1].lon) + 2;
     const minLat = Math.min(coordinates[0].lat, coordinates[1].lat) - 2;
     const maxLat = Math.max(coordinates[0].lat, coordinates[1].lat) + 2;
-    
+
     const scaleX = (lon: number) => padding + ((lon - minLon) / (maxLon - minLon)) * (width - 2 * padding);
     const scaleY = (lat: number) => height - padding - ((lat - minLat) / (maxLat - minLat)) * (height - 2 * padding);
-    
+
     const x1 = scaleX(coordinates[0].lon);
     const y1 = scaleY(coordinates[0].lat);
     const x2 = scaleX(coordinates[1].lon);
     const y2 = scaleY(coordinates[1].lat);
-    
+
     // Arc path for curved route
     const midX = (x1 + x2) / 2;
     const midY = Math.min(y1, y2) - 50;
-    
+
     return `M ${x1} ${y1} Q ${midX} ${midY} ${x2} ${y2}`;
   }, [coordinates]);
 
   const currentSvgPoint = useMemo(() => {
     if (!currentPosition || coordinates.length < 2) return null;
-    
+
     const padding = 60;
     const width = 800;
     const height = 400;
-    
+
     const minLon = Math.min(coordinates[0].lon, coordinates[1].lon) - 2;
     const maxLon = Math.max(coordinates[0].lon, coordinates[1].lon) + 2;
     const minLat = Math.min(coordinates[0].lat, coordinates[1].lat) - 2;
     const maxLat = Math.max(coordinates[0].lat, coordinates[1].lat) + 2;
-    
+
     const scaleX = (lon: number) => padding + ((lon - minLon) / (maxLon - minLon)) * (width - 2 * padding);
     const scaleY = (lat: number) => height - padding - ((lat - minLat) / (maxLat - minLat)) * (height - 2 * padding);
-    
+
     // Quadratic bezier point calculation
     const t = progress / 100;
     const x1 = scaleX(coordinates[0].lon);
@@ -198,10 +235,10 @@ const FlightDetail = () => {
     const y2 = scaleY(coordinates[1].lat);
     const midX = (x1 + x2) / 2;
     const midY = Math.min(y1, y2) - 50;
-    
-    const x = (1-t)*(1-t)*x1 + 2*(1-t)*t*midX + t*t*x2;
-    const y = (1-t)*(1-t)*y1 + 2*(1-t)*t*midY + t*t*y2;
-    
+
+    const x = (1 - t) * (1 - t) * x1 + 2 * (1 - t) * t * midX + t * t * x2;
+    const y = (1 - t) * (1 - t) * y1 + 2 * (1 - t) * t * midY + t * t * y2;
+
     return { x, y };
   }, [currentPosition, coordinates, progress]);
 
@@ -210,15 +247,15 @@ const FlightDetail = () => {
     const padding = 60;
     const width = 800;
     const height = 400;
-    
+
     const minLon = Math.min(coordinates[0].lon, coordinates[1].lon) - 2;
     const maxLon = Math.max(coordinates[0].lon, coordinates[1].lon) + 2;
     const minLat = Math.min(coordinates[0].lat, coordinates[1].lat) - 2;
     const maxLat = Math.max(coordinates[0].lat, coordinates[1].lat) + 2;
-    
+
     const x = padding + ((coordinates[0].lon - minLon) / (maxLon - minLon)) * (width - 2 * padding);
     const y = height - padding - ((coordinates[0].lat - minLat) / (maxLat - minLat)) * (height - 2 * padding);
-    
+
     return { x, y };
   }, [coordinates]);
 
@@ -227,22 +264,22 @@ const FlightDetail = () => {
     const padding = 60;
     const width = 800;
     const height = 400;
-    
+
     const minLon = Math.min(coordinates[0].lon, coordinates[1].lon) - 2;
     const maxLon = Math.max(coordinates[0].lon, coordinates[1].lon) + 2;
     const minLat = Math.min(coordinates[0].lat, coordinates[1].lat) - 2;
     const maxLat = Math.max(coordinates[0].lat, coordinates[1].lat) + 2;
-    
+
     const x = padding + ((coordinates[1].lon - minLon) / (maxLon - minLon)) * (width - 2 * padding);
     const y = height - padding - ((coordinates[1].lat - minLat) / (maxLat - minLat)) * (height - 2 * padding);
-    
+
     return { x, y };
   }, [coordinates]);
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
+
       <main className="container mx-auto px-4 py-8">
         {/* Back button */}
         <Link to="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-6">
@@ -261,7 +298,17 @@ const FlightDetail = () => {
               {flight.type} {flight.operator && `• ${flight.operator}`}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <a
+              href={`https://globe.adsbexchange.com/?icao=${flight.icao}&lat=${flight.startLat}&lon=${flight.startLon}&zoom=5&showTrace=${flight.date.toISOString().split('T')[0]}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Button variant="outline" size="sm" className="bg-primary/10 border-primary/20 text-primary hover:bg-primary/20">
+                <ExternalLink className="w-4 h-4 mr-2" />
+                Megnyitás ADSBExchange-en
+              </Button>
+            </a>
             {flightIndex > 0 && (
               <Link to={`/flight/${flightIndex - 1}`}>
                 <Button variant="outline" size="sm">
@@ -355,13 +402,6 @@ const FlightDetail = () => {
             </div>
             <p className="font-mono text-sm">{flight.startTime} - {flight.endTime}</p>
           </div>
-          <div className="glass-card p-4">
-            <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
-              <DollarSign className="w-4 h-4" />
-              Becsült költség
-            </div>
-            <p className="font-mono text-lg text-accent">{formatCurrency(cost)}</p>
-          </div>
         </div>
 
         {/* Animated route visualization */}
@@ -369,18 +409,18 @@ const FlightDetail = () => {
           <div className="p-4 border-b border-border">
             <h2 className="text-xl font-semibold">Útvonal animáció</h2>
           </div>
-          
+
           {/* SVG Route visualization */}
           <div className="relative bg-card">
             <svg viewBox="0 0 800 400" className="w-full h-auto">
               {/* Background grid */}
               <defs>
                 <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                  <path d="M 40 0 L 0 0 0 40" fill="none" stroke="hsl(220, 20%, 18%)" strokeWidth="0.5"/>
+                  <path d="M 40 0 L 0 0 0 40" fill="none" stroke="hsl(220, 20%, 18%)" strokeWidth="0.5" />
                 </pattern>
               </defs>
               <rect width="100%" height="100%" fill="url(#grid)" />
-              
+
               {/* Full route (faded) */}
               <path
                 d={svgPath}
@@ -390,7 +430,7 @@ const FlightDetail = () => {
                 strokeOpacity="0.3"
                 strokeDasharray="10,5"
               />
-              
+
               {/* Animated trail */}
               <path
                 d={svgPath}
@@ -400,7 +440,7 @@ const FlightDetail = () => {
                 strokeDasharray={`${progress * 5} 1000`}
                 style={{ filter: 'drop-shadow(0 0 4px hsl(325, 90%, 60%))' }}
               />
-              
+
               {/* Start point with label */}
               {startPoint && (
                 <g>
@@ -410,7 +450,7 @@ const FlightDetail = () => {
                   </text>
                 </g>
               )}
-              
+
               {/* End point with label */}
               {endPoint && (
                 <g>
@@ -420,14 +460,14 @@ const FlightDetail = () => {
                   </text>
                 </g>
               )}
-              
+
               {/* Current position (plane) */}
               {currentSvgPoint && (
                 <g transform={`translate(${currentSvgPoint.x}, ${currentSvgPoint.y})`}>
                   <circle r="15" fill="hsl(325, 90%, 60%)" opacity="0.3" />
-                  <text 
-                    fontSize="24" 
-                    textAnchor="middle" 
+                  <text
+                    fontSize="24"
+                    textAnchor="middle"
                     dominantBaseline="central"
                     style={{ filter: 'drop-shadow(0 0 2px black)' }}
                   >
@@ -437,7 +477,7 @@ const FlightDetail = () => {
               )}
             </svg>
           </div>
-          
+
           {/* Controls */}
           <div className="p-4 border-t border-border">
             <div className="flex items-center gap-4">
@@ -467,7 +507,7 @@ const FlightDetail = () => {
                   <span className="text-xs font-mono">{speed}x</span>
                 </Button>
               </div>
-              
+
               <div className="flex-1">
                 <Slider
                   value={[progress]}
@@ -480,7 +520,7 @@ const FlightDetail = () => {
                   className="w-full"
                 />
               </div>
-              
+
               <span className="text-sm font-mono text-muted-foreground w-16 text-right">
                 {Math.round(progress)}%
               </span>

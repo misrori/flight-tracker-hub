@@ -10,6 +10,7 @@ interface CountryMapProps {
 
 // Country center coordinates
 const countryCoords: Record<string, [number, number]> = {
+  // Hungarian names (for backwards compatibility if needed)
   'Magyarország': [47.1625, 19.5033],
   'Németország': [51.1657, 10.4515],
   'Svájc': [46.8182, 8.2275],
@@ -33,23 +34,51 @@ const countryCoords: Record<string, [number, number]> = {
   'Portugália': [39.3999, -8.2245],
   'Törökország': [38.9637, 35.2433],
   'Egyesült Arab Emírségek': [23.4241, 53.8478],
-  'Monaco': [43.7384, 7.4246],
-  'Montenegró': [42.7087, 19.3744],
-  'Albánia': [41.1533, 20.1683],
-  'Izland': [64.9631, -19.0208],
-  'Norvégia': [60.4720, 8.4689],
-  'Svédország': [60.1282, 18.6435],
-  'Finnország': [61.9241, 25.7482],
-  'Dánia': [56.2639, 9.5018],
-  'Luxemburg': [49.8153, 6.1296],
-  'Írország': [53.1424, -7.6921],
-  'Ciprus': [35.1264, 33.4299],
   'Málta': [35.9375, 14.3754],
-  'Szaúd-Arábia': [23.8859, 45.0792],
-  'Egyiptom': [26.8206, 30.8025],
-  'Marokkó': [31.7917, -7.0926],
-  'USA': [37.0902, -95.7129],
-  'Kanada': [56.1304, -106.3468],
+
+  // English names from CSV
+  'Hungary': [47.1625, 19.5033],
+  'Germany': [51.1657, 10.4515],
+  'Switzerland': [46.8182, 8.2275],
+  'United Kingdom': [55.3781, -3.4360],
+  'Romania': [45.9432, 24.9668],
+  'Bulgaria': [42.7339, 25.4858],
+  'Seychelles': [-4.6796, 55.4920],
+  'Spain': [40.4637, -3.7492],
+  'Italy': [41.8719, 12.5674],
+  'France': [46.2276, 2.2137],
+  'Austria': [47.5162, 14.5501],
+  'Croatia': [45.1, 15.2],
+  'Greece': [39.0742, 21.8243],
+  'Netherlands': [52.1326, 5.2913],
+  'Poland': [51.9194, 19.1451],
+  'Czechia': [49.8175, 15.4730],
+  'Slovakia': [48.6690, 19.6990],
+  'Serbia': [44.0165, 21.0059],
+  'Slovenia': [46.1512, 14.9955],
+  'Portugal': [39.3999, -8.2245],
+  'Türkiye': [38.9637, 35.2433],
+  'United Arab Emirates': [23.4241, 53.8478],
+  'United States': [37.0902, -95.7129],
+  'Canada': [56.1304, -106.3468],
+  'China': [35.8617, 104.1954],
+  'India': [20.5937, 78.9629],
+  'Thailand': [15.8700, 100.9925],
+  'Viet Nam': [14.0583, 108.2772],
+  'Philippines': [12.8797, 121.7740],
+  'Hong Kong': [22.3193, 114.1694],
+  'Korea, Republic of': [35.9078, 127.7669],
+  'Taiwan, Province of China': [23.6978, 120.9605],
+  'Maldives': [3.2028, 73.2207],
+  'South Africa': [-30.5595, 22.9375],
+  'Armenia': [40.0691, 45.0382],
+  'Cabo Verde': [16.0020, -24.0131],
+  'Chile': [-35.6751, -71.5430],
+  'Uruguay': [-32.5228, -55.7658],
+  'Iceland': [64.9631, -19.0208],
+  'Tanzania': [-6.3690, 34.8888],
+  'Albania': [41.1533, 20.1683],
+  'Malta': [35.9375, 14.3754],
 };
 
 function getColor(visits: number, maxVisits: number): string {
@@ -129,7 +158,7 @@ export function CountryMap({ countryVisits }: CountryMapProps) {
     const validCoords = countryVisits
       .map(cv => countryCoords[cv.country])
       .filter(Boolean) as [number, number][];
-    
+
     if (validCoords.length > 0) {
       const bounds = L.latLngBounds(validCoords);
       map.fitBounds(bounds, { padding: [50, 50] });

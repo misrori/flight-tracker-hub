@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Analytics from "./pages/Analytics";
 import FlightDetail from "./pages/FlightDetail";
+import RawData from "./pages/RawData";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -15,11 +16,12 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
+      ó      <BrowserRouter basename={import.meta.env.BASE_URL}>
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/flight/:id" element={<FlightDetail />} />
+          <Route path="/raw-data" element={<RawData />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

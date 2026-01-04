@@ -11,46 +11,20 @@ interface FlightListProps {
 }
 
 const countryFlags: Record<string, string> = {
-  'Magyarország': '🇭🇺',
-  'Németország': '🇩🇪',
-  'Svájc': '🇨🇭',
-  'Egyesült Királyság': '🇬🇧',
-  'Románia': '🇷🇴',
-  'Bulgária': '🇧🇬',
-  'Seychelle-szigetek': '🇸🇨',
-  'Spanyolország': '🇪🇸',
-  'Olaszország': '🇮🇹',
-  'Franciaország': '🇫🇷',
-  'Ausztria': '🇦🇹',
-  'Horvátország': '🇭🇷',
-  'Görögország': '🇬🇷',
-  'Hollandia': '🇳🇱',
-  'Belgium': '🇧🇪',
-  'Lengyelország': '🇵🇱',
-  'Csehország': '🇨🇿',
-  'Szlovákia': '🇸🇰',
-  'Szerbia': '🇷🇸',
-  'Szlovénia': '🇸🇮',
-  'Portugália': '🇵🇹',
-  'Törökország': '🇹🇷',
-  'Egyesült Arab Emírségek': '🇦🇪',
-  'Szaúd-Arábia': '🇸🇦',
-  'Egyiptom': '🇪🇬',
-  'Marokkó': '🇲🇦',
-  'USA': '🇺🇸',
-  'Kanada': '🇨🇦',
   'Monaco': '🇲🇨',
-  'Montenegró': '🇲🇪',
-  'Albánia': '🇦🇱',
-  'Izland': '🇮🇸',
-  'Norvégia': '🇳🇴',
-  'Svédország': '🇸🇪',
-  'Finnország': '🇫🇮',
-  'Dánia': '🇩🇰',
-  'Luxemburg': '🇱🇺',
-  'Írország': '🇮🇪',
-  'Ciprus': '🇨🇾',
-  'Málta': '🇲🇹',
+  // English names from CSV
+  'Hungary': '🇭🇺',
+  'Tanzania': '🇹🇿',
+  'Armenia': '🇦🇲',
+  'China': '🇨🇳',
+  'Hong Kong': '🇭🇰',
+  'Philippines': '🇵🇭',
+  'Vietnam': '🇻🇳',
+  'Viet Nam': '🇻🇳',
+  'Taiwan': '🇹🇼',
+  'Malta': '🇲🇹',
+  'Iceland': '🇮🇸',
+  'Albania': '🇦🇱',
 };
 
 function getFlag(country: string): string {
@@ -76,7 +50,7 @@ export function FlightList({ flights, selectedFlight, onSelectFlight }: FlightLi
           Kattints egy járatra a részletekért
         </p>
       </div>
-      
+
       <ScrollArea className="h-[500px]">
         <div className="divide-y divide-border">
           {flights.map((flight, index) => {
@@ -91,9 +65,8 @@ export function FlightList({ flights, selectedFlight, onSelectFlight }: FlightLi
               <button
                 key={flight.id}
                 onClick={() => handleFlightClick(flight, index)}
-                className={`w-full p-4 text-left transition-all hover:bg-muted/50 group ${
-                  isSelected ? 'bg-primary/10 border-l-2 border-l-primary' : ''
-                }`}
+                className={`w-full p-4 text-left transition-all hover:bg-muted/50 group ${isSelected ? 'bg-primary/10 border-l-2 border-l-primary' : ''
+                  }`}
               >
                 <div className="flex items-start justify-between mb-2">
                   <div>
@@ -104,7 +77,15 @@ export function FlightList({ flights, selectedFlight, onSelectFlight }: FlightLi
                       {flight.type}
                     </span>
                   </div>
-                  <ExternalLink className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <a
+                    href={`https://globe.adsbexchange.com/?icao=${flight.icao}&lat=${flight.startLat}&lon=${flight.startLon}&zoom=5&showTrace=${flight.date.toISOString().split('T')[0]}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="p-1 hover:bg-primary/20 rounded transition-colors"
+                  >
+                    <ExternalLink className="w-4 h-4 text-primary" />
+                  </a>
                 </div>
 
                 {/* Route with flags and cities */}
@@ -132,10 +113,6 @@ export function FlightList({ flights, selectedFlight, onSelectFlight }: FlightLi
                   <div className="flex items-center gap-1 text-muted-foreground">
                     <Route className="w-3 h-3" />
                     <span>{Math.round(distance)} km</span>
-                  </div>
-                  <div className="flex items-center gap-1 text-accent font-mono">
-                    <DollarSign className="w-3 h-3" />
-                    <span>~{formatCurrency(cost)}</span>
                   </div>
                 </div>
               </button>
