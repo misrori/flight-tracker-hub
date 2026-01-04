@@ -1,40 +1,38 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Header } from '@/components/Header';
 import { StatCard } from '@/components/StatCard';
 import { FlightChart } from '@/components/FlightChart';
 import { FlightList } from '@/components/FlightList';
 import { ViewToggle } from '@/components/ViewToggle';
+import { AircraftFilter } from '@/components/AircraftFilter';
+import { CountryMap } from '@/components/CountryMap';
 import { 
   loadFlightData, 
   getFlightStats, 
   getDailyFlightData, 
   getMonthlyFlightData,
-  getLocationHeatmap,
+  getAircraftList,
+  getCountryVisits,
   formatDuration,
   formatCurrency 
 } from '@/lib/flightData';
-import type { Flight, FlightStats, DailyFlightData, MonthlyFlightData, LocationData } from '@/types/flight';
-import { Plane, Clock, MapPin, Banknote, Loader2, Map } from 'lucide-react';
+import type { Flight, FlightStats, DailyFlightData, MonthlyFlightData, AircraftInfo } from '@/types/flight';
+import { Plane, Clock, MapPin, Banknote, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const Index = () => {
-  const [flights, setFlights] = useState<Flight[]>([]);
-  const [stats, setStats] = useState<FlightStats | null>(null);
-  const [dailyData, setDailyData] = useState<DailyFlightData[]>([]);
-  const [monthlyData, setMonthlyData] = useState<MonthlyFlightData[]>([]);
-  const [locations, setLocations] = useState<LocationData[]>([]);
+  const [allFlights, setAllFlights] = useState<Flight[]>([]);
+  const [aircraftList, setAircraftList] = useState<AircraftInfo[]>([]);
+  const [selectedAircraft, setSelectedAircraft] = useState<string | null>(null);
   const [selectedFlight, setSelectedFlight] = useState<Flight | null>(null);
-  const [chartView, setChartView] = useState<'daily' | 'monthly'>('daily');
+  const [chartView, setChartView] = useState<'daily' | 'monthly'>('monthly');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadFlightData()
       .then(data => {
-        setFlights(data);
-        setStats(getFlightStats(data));
-        setDailyData(getDailyFlightData(data));
-        setMonthlyData(getMonthlyFlightData(data));
-        setLocations(getLocationHeatmap(data));
+        setAllFlights(data);
+        setAircraftList(getAircraftList(data));
         setLoading(false);
       })
       .catch(err => {
@@ -42,6 +40,17 @@ const Index = () => {
         setLoading(false);
       });
   }, []);
+
+  // Filter flights based on selected aircraft
+  const flights = useMemo(() => {
+    if (!selectedAircraft) return allFlights;
+    return allFlights.filter(f => f.registration === selectedAircraft);
+  }, [allFlights, selectedAircraft]);
+
+  const stats = useMemo(() => getFlightStats(flights), [flights]);
+  const dailyData = useMemo(() => getDailyFlightData(flights), [flights]);
+  const monthlyData = useMemo(() => getMonthlyFlightData(flights), [flights]);
+  const countryVisits = useMemo(() => getCountryVisits(flights), [flights]);
 
   if (loading) {
     return (
@@ -79,7 +88,7 @@ const Index = () => {
             <StatCard
               title="Megtett távolság"
               value={`${stats.totalDistanceKm.toLocaleString('hu-HU')} km`}
-              subtitle="Légvonalban"
+              subtitle={`${stats.uniqueCountries} ország`}
               icon={MapPin}
               delay={200}
             />
@@ -95,25 +104,10 @@ const Index = () => {
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Map placeholder & Charts */}
+          {/* Map & Charts */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Map info card */}
-            <div className="glass-card p-8 text-center animate-fade-in">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
-                <Map className="w-8 h-8 text-primary" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Interaktív térkép</h3>
-              <p className="text-muted-foreground mb-4">
-                Kattints egy járatra a listából az útvonal részletes megtekintéséhez és animálásához.
-              </p>
-              <div className="flex flex-wrap justify-center gap-2 text-sm">
-                {locations.slice(0, 5).map((loc, i) => (
-                  <span key={i} className="px-3 py-1 rounded-full bg-primary/10 text-primary">
-                    {loc.count}× ({loc.lat.toFixed(1)}°, {loc.lon.toFixed(1)}°)
-                  </span>
-                ))}
-              </div>
-            </div>
+            {/* Country Map */}
+            <CountryMap countryVisits={countryVisits} />
 
             {/* Chart Section */}
             <div className="flex items-center justify-between mb-4">
@@ -127,8 +121,16 @@ const Index = () => {
             />
           </div>
 
-          {/* Flight List Sidebar */}
-          <div className="lg:col-span-1">
+          {/* Right sidebar */}
+          <div className="lg:col-span-1 space-y-6">
+            {/* Aircraft Filter */}
+            <AircraftFilter 
+              aircraft={aircraftList}
+              selectedAircraft={selectedAircraft}
+              onSelectAircraft={setSelectedAircraft}
+            />
+            
+            {/* Flight List */}
             <FlightList
               flights={flights}
               selectedFlight={selectedFlight}

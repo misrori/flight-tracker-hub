@@ -1,7 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import type { Flight } from '@/types/flight';
 import { formatDuration, formatCurrency, estimateFlightCost, calculateDistance } from '@/lib/flightData';
-import { getCountryFromCoords, getFlagEmoji } from '@/lib/countries';
 import { Plane, Clock, Route, DollarSign, ExternalLink } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -9,6 +8,53 @@ interface FlightListProps {
   flights: Flight[];
   selectedFlight: Flight | null;
   onSelectFlight: (flight: Flight) => void;
+}
+
+const countryFlags: Record<string, string> = {
+  'Magyarország': '🇭🇺',
+  'Németország': '🇩🇪',
+  'Svájc': '🇨🇭',
+  'Egyesült Királyság': '🇬🇧',
+  'Románia': '🇷🇴',
+  'Bulgária': '🇧🇬',
+  'Seychelle-szigetek': '🇸🇨',
+  'Spanyolország': '🇪🇸',
+  'Olaszország': '🇮🇹',
+  'Franciaország': '🇫🇷',
+  'Ausztria': '🇦🇹',
+  'Horvátország': '🇭🇷',
+  'Görögország': '🇬🇷',
+  'Hollandia': '🇳🇱',
+  'Belgium': '🇧🇪',
+  'Lengyelország': '🇵🇱',
+  'Csehország': '🇨🇿',
+  'Szlovákia': '🇸🇰',
+  'Szerbia': '🇷🇸',
+  'Szlovénia': '🇸🇮',
+  'Portugália': '🇵🇹',
+  'Törökország': '🇹🇷',
+  'Egyesült Arab Emírségek': '🇦🇪',
+  'Szaúd-Arábia': '🇸🇦',
+  'Egyiptom': '🇪🇬',
+  'Marokkó': '🇲🇦',
+  'USA': '🇺🇸',
+  'Kanada': '🇨🇦',
+  'Monaco': '🇲🇨',
+  'Montenegró': '🇲🇪',
+  'Albánia': '🇦🇱',
+  'Izland': '🇮🇸',
+  'Norvégia': '🇳🇴',
+  'Svédország': '🇸🇪',
+  'Finnország': '🇫🇮',
+  'Dánia': '🇩🇰',
+  'Luxemburg': '🇱🇺',
+  'Írország': '🇮🇪',
+  'Ciprus': '🇨🇾',
+  'Málta': '🇲🇹',
+};
+
+function getFlag(country: string): string {
+  return countryFlags[country] || '🏳️';
 }
 
 export function FlightList({ flights, selectedFlight, onSelectFlight }: FlightListProps) {
@@ -31,7 +77,7 @@ export function FlightList({ flights, selectedFlight, onSelectFlight }: FlightLi
         </p>
       </div>
       
-      <ScrollArea className="h-[400px]">
+      <ScrollArea className="h-[500px]">
         <div className="divide-y divide-border">
           {flights.map((flight, index) => {
             const distance = calculateDistance(
@@ -40,12 +86,10 @@ export function FlightList({ flights, selectedFlight, onSelectFlight }: FlightLi
             );
             const cost = estimateFlightCost(flight.durationMinutes);
             const isSelected = selectedFlight === flight;
-            const startCountry = getCountryFromCoords(flight.startLat, flight.startLon);
-            const endCountry = getCountryFromCoords(flight.endLat, flight.endLon);
 
             return (
               <button
-                key={`${flight.icao}-${index}`}
+                key={flight.id}
                 onClick={() => handleFlightClick(flight, index)}
                 className={`w-full p-4 text-left transition-all hover:bg-muted/50 group ${
                   isSelected ? 'bg-primary/10 border-l-2 border-l-primary' : ''
@@ -63,17 +107,21 @@ export function FlightList({ flights, selectedFlight, onSelectFlight }: FlightLi
                   <ExternalLink className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
 
-                {/* Route with flags */}
+                {/* Route with flags and cities */}
                 <div className="flex items-center gap-2 mb-2 text-sm">
-                  <span>{getFlagEmoji(startCountry.code)}</span>
+                  <span>{getFlag(flight.startCountry)}</span>
+                  <span className="text-foreground truncate max-w-20">{flight.startCity || flight.startCountry}</span>
                   <span className="text-muted-foreground">→</span>
-                  <span>{getFlagEmoji(endCountry.code)}</span>
-                  <span className="text-muted-foreground ml-auto">
-                    {flight.startTime.toLocaleDateString('hu-HU', {
-                      month: 'short',
-                      day: 'numeric',
-                    })}
-                  </span>
+                  <span>{getFlag(flight.endCountry)}</span>
+                  <span className="text-foreground truncate max-w-20">{flight.endCity || flight.endCountry}</span>
+                </div>
+
+                <div className="flex items-center gap-1 text-sm text-muted-foreground mb-2">
+                  {flight.date.toLocaleDateString('hu-HU', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                  })}
                 </div>
 
                 <div className="grid grid-cols-3 gap-2 text-sm">

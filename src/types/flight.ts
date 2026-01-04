@@ -1,25 +1,21 @@
-export interface FlightPoint {
-  lat: number;
-  lon: number;
-  alt?: number;
-  timestamp?: number;
-}
-
 export interface Flight {
-  icao: string;
+  id: string;
   registration: string;
-  operator: string;
   type: string;
-  startTime: Date;
-  endTime: Date;
+  operator: string;
+  date: Date;
+  startTime: string;
+  endTime: string;
+  durationMinutes: number;
   startLat: number;
   startLon: number;
   endLat: number;
   endLon: number;
-  durationMinutes: number;
-  pointsCount: number;
   status: string;
-  routeData: FlightPoint[];
+  startCity: string;
+  startCountry: string;
+  endCity: string;
+  endCountry: string;
 }
 
 export interface FlightStats {
@@ -27,7 +23,7 @@ export interface FlightStats {
   totalDurationMinutes: number;
   totalDistanceKm: number;
   estimatedCostEur: number;
-  countriesVisited: string[];
+  uniqueCountries: number;
   averageFlightDuration: number;
 }
 
@@ -44,10 +40,16 @@ export interface MonthlyFlightData {
   estimatedCost: number;
 }
 
-export interface LocationData {
-  lat: number;
-  lon: number;
-  count: number;
-  city?: string;
-  country?: string;
+export interface CountryVisit {
+  country: string;
+  visits: number;
+  departures: number;
+  arrivals: number;
+}
+
+export interface AircraftInfo {
+  registration: string;
+  type: string;
+  operator: string;
+  flightCount: number;
 }

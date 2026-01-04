@@ -2,11 +2,41 @@ import { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { loadFlightData, formatDuration, formatCurrency, estimateFlightCost, calculateDistance } from '@/lib/flightData';
-import { getCountryFromCoords, getFlagEmoji } from '@/lib/countries';
 import type { Flight } from '@/types/flight';
-import { Loader2, ArrowLeft, Plane, Clock, Route, DollarSign, MapPin, Calendar, ArrowRight, Play, Pause, RotateCcw } from 'lucide-react';
+import { Loader2, ArrowLeft, Plane, Clock, Route, DollarSign, Calendar, ArrowRight, Play, Pause, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
+
+const countryFlags: Record<string, string> = {
+  'Magyarország': '🇭🇺',
+  'Németország': '🇩🇪',
+  'Svájc': '🇨🇭',
+  'Egyesült Királyság': '🇬🇧',
+  'Románia': '🇷🇴',
+  'Bulgária': '🇧🇬',
+  'Seychelle-szigetek': '🇸🇨',
+  'Spanyolország': '🇪🇸',
+  'Olaszország': '🇮🇹',
+  'Franciaország': '🇫🇷',
+  'Ausztria': '🇦🇹',
+  'Horvátország': '🇭🇷',
+  'Görögország': '🇬🇷',
+  'Hollandia': '🇳🇱',
+  'Belgium': '🇧🇪',
+  'Lengyelország': '🇵🇱',
+  'Csehország': '🇨🇿',
+  'Szlovákia': '🇸🇰',
+  'Szerbia': '🇷🇸',
+  'Szlovénia': '🇸🇮',
+  'Portugália': '🇵🇹',
+  'Törökország': '🇹🇷',
+  'Egyesült Arab Emírségek': '🇦🇪',
+  'Monaco': '🇲🇨',
+};
+
+function getFlag(country: string): string {
+  return countryFlags[country] || '🏳️';
+}
 
 const FlightDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -50,20 +80,22 @@ const FlightDetail = () => {
     return () => clearInterval(interval);
   }, [isPlaying, speed, flight]);
 
+  // Simple 2-point route (start to end)
   const coordinates = useMemo(() => {
     if (!flight) return [];
-    return flight.routeData.length > 0
-      ? flight.routeData.map(p => ({ lat: p.lat, lon: p.lon }))
-      : [
-          { lat: flight.startLat, lon: flight.startLon },
-          { lat: flight.endLat, lon: flight.endLon }
-        ];
+    return [
+      { lat: flight.startLat, lon: flight.startLon },
+      { lat: flight.endLat, lon: flight.endLon }
+    ];
   }, [flight]);
 
   const currentPosition = useMemo(() => {
-    if (coordinates.length === 0) return null;
-    const idx = Math.floor((progress / 100) * (coordinates.length - 1));
-    return coordinates[Math.min(idx, coordinates.length - 1)];
+    if (coordinates.length < 2) return null;
+    const t = progress / 100;
+    return {
+      lat: coordinates[0].lat + t * (coordinates[1].lat - coordinates[0].lat),
+      lon: coordinates[0].lon + t * (coordinates[1].lon - coordinates[0].lon),
+    };
   }, [coordinates, progress]);
 
   if (loading) {
@@ -94,8 +126,6 @@ const FlightDetail = () => {
     );
   }
 
-  const startCountry = getCountryFromCoords(flight.startLat, flight.startLon);
-  const endCountry = getCountryFromCoords(flight.endLat, flight.endLon);
   const distance = calculateDistance(flight.startLat, flight.startLon, flight.endLat, flight.endLon);
   const cost = estimateFlightCost(flight.durationMinutes);
   const flightIndex = parseInt(id || '0', 10);
@@ -121,75 +151,93 @@ const FlightDetail = () => {
   // Calculate SVG path for route visualization
   const svgPath = useMemo(() => {
     if (coordinates.length < 2) return '';
-    
-    // Simple projection
-    const minLat = Math.min(...coordinates.map(c => c.lat));
-    const maxLat = Math.max(...coordinates.map(c => c.lat));
-    const minLon = Math.min(...coordinates.map(c => c.lon));
-    const maxLon = Math.max(...coordinates.map(c => c.lon));
-    
-    const padding = 40;
+    const padding = 60;
     const width = 800;
     const height = 400;
     
-    const scaleX = (lon: number) => padding + ((lon - minLon) / (maxLon - minLon || 1)) * (width - 2 * padding);
-    const scaleY = (lat: number) => height - padding - ((lat - minLat) / (maxLat - minLat || 1)) * (height - 2 * padding);
+    const minLon = Math.min(coordinates[0].lon, coordinates[1].lon) - 2;
+    const maxLon = Math.max(coordinates[0].lon, coordinates[1].lon) + 2;
+    const minLat = Math.min(coordinates[0].lat, coordinates[1].lat) - 2;
+    const maxLat = Math.max(coordinates[0].lat, coordinates[1].lat) + 2;
     
-    const points = coordinates.map((c, i) => {
-      const x = scaleX(c.lon);
-      const y = scaleY(c.lat);
-      return i === 0 ? `M ${x} ${y}` : `L ${x} ${y}`;
-    });
+    const scaleX = (lon: number) => padding + ((lon - minLon) / (maxLon - minLon)) * (width - 2 * padding);
+    const scaleY = (lat: number) => height - padding - ((lat - minLat) / (maxLat - minLat)) * (height - 2 * padding);
     
-    return points.join(' ');
+    const x1 = scaleX(coordinates[0].lon);
+    const y1 = scaleY(coordinates[0].lat);
+    const x2 = scaleX(coordinates[1].lon);
+    const y2 = scaleY(coordinates[1].lat);
+    
+    // Arc path for curved route
+    const midX = (x1 + x2) / 2;
+    const midY = Math.min(y1, y2) - 50;
+    
+    return `M ${x1} ${y1} Q ${midX} ${midY} ${x2} ${y2}`;
   }, [coordinates]);
 
   const currentSvgPoint = useMemo(() => {
     if (!currentPosition || coordinates.length < 2) return null;
     
-    const minLat = Math.min(...coordinates.map(c => c.lat));
-    const maxLat = Math.max(...coordinates.map(c => c.lat));
-    const minLon = Math.min(...coordinates.map(c => c.lon));
-    const maxLon = Math.max(...coordinates.map(c => c.lon));
-    
-    const padding = 40;
+    const padding = 60;
     const width = 800;
     const height = 400;
     
-    const x = padding + ((currentPosition.lon - minLon) / (maxLon - minLon || 1)) * (width - 2 * padding);
-    const y = height - padding - ((currentPosition.lat - minLat) / (maxLat - minLat || 1)) * (height - 2 * padding);
+    const minLon = Math.min(coordinates[0].lon, coordinates[1].lon) - 2;
+    const maxLon = Math.max(coordinates[0].lon, coordinates[1].lon) + 2;
+    const minLat = Math.min(coordinates[0].lat, coordinates[1].lat) - 2;
+    const maxLat = Math.max(coordinates[0].lat, coordinates[1].lat) + 2;
+    
+    const scaleX = (lon: number) => padding + ((lon - minLon) / (maxLon - minLon)) * (width - 2 * padding);
+    const scaleY = (lat: number) => height - padding - ((lat - minLat) / (maxLat - minLat)) * (height - 2 * padding);
+    
+    // Quadratic bezier point calculation
+    const t = progress / 100;
+    const x1 = scaleX(coordinates[0].lon);
+    const y1 = scaleY(coordinates[0].lat);
+    const x2 = scaleX(coordinates[1].lon);
+    const y2 = scaleY(coordinates[1].lat);
+    const midX = (x1 + x2) / 2;
+    const midY = Math.min(y1, y2) - 50;
+    
+    const x = (1-t)*(1-t)*x1 + 2*(1-t)*t*midX + t*t*x2;
+    const y = (1-t)*(1-t)*y1 + 2*(1-t)*t*midY + t*t*y2;
     
     return { x, y };
-  }, [currentPosition, coordinates]);
+  }, [currentPosition, coordinates, progress]);
 
-  const trailPath = useMemo(() => {
-    if (coordinates.length < 2) return '';
-    
-    const idx = Math.floor((progress / 100) * (coordinates.length - 1));
-    const trailCoords = coordinates.slice(0, idx + 1);
-    
-    if (trailCoords.length < 2) return '';
-    
-    const minLat = Math.min(...coordinates.map(c => c.lat));
-    const maxLat = Math.max(...coordinates.map(c => c.lat));
-    const minLon = Math.min(...coordinates.map(c => c.lon));
-    const maxLon = Math.max(...coordinates.map(c => c.lon));
-    
-    const padding = 40;
+  const startPoint = useMemo(() => {
+    if (coordinates.length < 2) return null;
+    const padding = 60;
     const width = 800;
     const height = 400;
     
-    const scaleX = (lon: number) => padding + ((lon - minLon) / (maxLon - minLon || 1)) * (width - 2 * padding);
-    const scaleY = (lat: number) => height - padding - ((lat - minLat) / (maxLat - minLat || 1)) * (height - 2 * padding);
+    const minLon = Math.min(coordinates[0].lon, coordinates[1].lon) - 2;
+    const maxLon = Math.max(coordinates[0].lon, coordinates[1].lon) + 2;
+    const minLat = Math.min(coordinates[0].lat, coordinates[1].lat) - 2;
+    const maxLat = Math.max(coordinates[0].lat, coordinates[1].lat) + 2;
     
-    const points = trailCoords.map((c, i) => {
-      const x = scaleX(c.lon);
-      const y = scaleY(c.lat);
-      return i === 0 ? `M ${x} ${y}` : `L ${x} ${y}`;
-    });
+    const x = padding + ((coordinates[0].lon - minLon) / (maxLon - minLon)) * (width - 2 * padding);
+    const y = height - padding - ((coordinates[0].lat - minLat) / (maxLat - minLat)) * (height - 2 * padding);
     
-    return points.join(' ');
-  }, [coordinates, progress]);
+    return { x, y };
+  }, [coordinates]);
+
+  const endPoint = useMemo(() => {
+    if (coordinates.length < 2) return null;
+    const padding = 60;
+    const width = 800;
+    const height = 400;
+    
+    const minLon = Math.min(coordinates[0].lon, coordinates[1].lon) - 2;
+    const maxLon = Math.max(coordinates[0].lon, coordinates[1].lon) + 2;
+    const minLat = Math.min(coordinates[0].lat, coordinates[1].lat) - 2;
+    const maxLat = Math.max(coordinates[0].lat, coordinates[1].lat) + 2;
+    
+    const x = padding + ((coordinates[1].lon - minLon) / (maxLon - minLon)) * (width - 2 * padding);
+    const y = height - padding - ((coordinates[1].lat - minLat) / (maxLat - minLat)) * (height - 2 * padding);
+    
+    return { x, y };
+  }, [coordinates]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -210,7 +258,7 @@ const FlightDetail = () => {
               <h1 className="text-3xl font-bold font-mono">{flight.registration}</h1>
             </div>
             <p className="text-muted-foreground">
-              {flight.type} • {flight.operator}
+              {flight.type} {flight.operator && `• ${flight.operator}`}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -243,12 +291,12 @@ const FlightDetail = () => {
                 <span className="text-sm text-muted-foreground">Indulás</span>
               </div>
               <div className="flex items-center gap-2 text-2xl">
-                <span>{getFlagEmoji(startCountry.code)}</span>
-                <span className="font-semibold">{startCountry.name}</span>
+                <span>{getFlag(flight.startCountry)}</span>
+                <div>
+                  <span className="font-semibold">{flight.startCity || 'Ismeretlen'}</span>
+                  <p className="text-sm text-muted-foreground">{flight.startCountry}</p>
+                </div>
               </div>
-              <p className="text-sm text-muted-foreground font-mono mt-1">
-                {flight.startLat.toFixed(4)}°, {flight.startLon.toFixed(4)}°
-              </p>
             </div>
 
             {/* Arrow & Distance */}
@@ -268,12 +316,12 @@ const FlightDetail = () => {
                 <div className="w-3 h-3 rounded-full bg-red-500" />
               </div>
               <div className="flex items-center gap-2 text-2xl justify-center md:justify-end">
-                <span className="font-semibold">{endCountry.name}</span>
-                <span>{getFlagEmoji(endCountry.code)}</span>
+                <div className="text-right">
+                  <span className="font-semibold">{flight.endCity || 'Ismeretlen'}</span>
+                  <p className="text-sm text-muted-foreground">{flight.endCountry}</p>
+                </div>
+                <span>{getFlag(flight.endCountry)}</span>
               </div>
-              <p className="text-sm text-muted-foreground font-mono mt-1">
-                {flight.endLat.toFixed(4)}°, {flight.endLon.toFixed(4)}°
-              </p>
             </div>
           </div>
         </div>
@@ -286,7 +334,7 @@ const FlightDetail = () => {
               Dátum
             </div>
             <p className="font-mono text-lg">
-              {flight.startTime.toLocaleDateString('hu-HU', {
+              {flight.date.toLocaleDateString('hu-HU', {
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric',
@@ -303,9 +351,9 @@ const FlightDetail = () => {
           <div className="glass-card p-4">
             <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
               <Route className="w-4 h-4" />
-              Adatpontok
+              Indulás/Érkezés
             </div>
-            <p className="font-mono text-lg">{flight.pointsCount}</p>
+            <p className="font-mono text-sm">{flight.startTime} - {flight.endTime}</p>
           </div>
           <div className="glass-card p-4">
             <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
@@ -340,49 +388,45 @@ const FlightDetail = () => {
                 stroke="hsl(325, 90%, 60%)"
                 strokeWidth="2"
                 strokeOpacity="0.3"
-                strokeDasharray="5,5"
+                strokeDasharray="10,5"
               />
               
               {/* Animated trail */}
               <path
-                d={trailPath}
+                d={svgPath}
                 fill="none"
                 stroke="hsl(325, 90%, 60%)"
                 strokeWidth="3"
-                strokeOpacity="1"
+                strokeDasharray={`${progress * 5} 1000`}
                 style={{ filter: 'drop-shadow(0 0 4px hsl(325, 90%, 60%))' }}
               />
               
-              {/* Start point */}
-              {coordinates.length > 0 && (
-                <circle
-                  cx={40 + ((coordinates[0].lon - Math.min(...coordinates.map(c => c.lon))) / (Math.max(...coordinates.map(c => c.lon)) - Math.min(...coordinates.map(c => c.lon)) || 1)) * 720}
-                  cy={400 - 40 - ((coordinates[0].lat - Math.min(...coordinates.map(c => c.lat))) / (Math.max(...coordinates.map(c => c.lat)) - Math.min(...coordinates.map(c => c.lat)) || 1)) * 320}
-                  r="8"
-                  fill="#22c55e"
-                  stroke="white"
-                  strokeWidth="2"
-                />
+              {/* Start point with label */}
+              {startPoint && (
+                <g>
+                  <circle cx={startPoint.x} cy={startPoint.y} r="10" fill="#22c55e" stroke="white" strokeWidth="2" />
+                  <text x={startPoint.x} y={startPoint.y + 30} textAnchor="middle" fill="white" fontSize="12" fontWeight="bold">
+                    {flight.startCity || flight.startCountry}
+                  </text>
+                </g>
               )}
               
-              {/* End point */}
-              {coordinates.length > 1 && (
-                <circle
-                  cx={40 + ((coordinates[coordinates.length - 1].lon - Math.min(...coordinates.map(c => c.lon))) / (Math.max(...coordinates.map(c => c.lon)) - Math.min(...coordinates.map(c => c.lon)) || 1)) * 720}
-                  cy={400 - 40 - ((coordinates[coordinates.length - 1].lat - Math.min(...coordinates.map(c => c.lat))) / (Math.max(...coordinates.map(c => c.lat)) - Math.min(...coordinates.map(c => c.lat)) || 1)) * 320}
-                  r="8"
-                  fill="#ef4444"
-                  stroke="white"
-                  strokeWidth="2"
-                />
+              {/* End point with label */}
+              {endPoint && (
+                <g>
+                  <circle cx={endPoint.x} cy={endPoint.y} r="10" fill="#ef4444" stroke="white" strokeWidth="2" />
+                  <text x={endPoint.x} y={endPoint.y + 30} textAnchor="middle" fill="white" fontSize="12" fontWeight="bold">
+                    {flight.endCity || flight.endCountry}
+                  </text>
+                </g>
               )}
               
               {/* Current position (plane) */}
               {currentSvgPoint && (
                 <g transform={`translate(${currentSvgPoint.x}, ${currentSvgPoint.y})`}>
-                  <circle r="12" fill="hsl(325, 90%, 60%)" opacity="0.3" />
+                  <circle r="15" fill="hsl(325, 90%, 60%)" opacity="0.3" />
                   <text 
-                    fontSize="20" 
+                    fontSize="24" 
                     textAnchor="middle" 
                     dominantBaseline="central"
                     style={{ filter: 'drop-shadow(0 0 2px black)' }}
@@ -392,18 +436,6 @@ const FlightDetail = () => {
                 </g>
               )}
             </svg>
-
-            {/* Legend */}
-            <div className="absolute top-4 left-4 glass-card p-3 text-sm">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-3 h-3 rounded-full bg-green-500" />
-                <span className="text-muted-foreground">Indulás</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-red-500" />
-                <span className="text-muted-foreground">Érkezés</span>
-              </div>
-            </div>
           </div>
           
           {/* Controls */}
@@ -456,36 +488,10 @@ const FlightDetail = () => {
           </div>
         </div>
 
-        {/* Time info */}
-        <div className="glass-card p-6">
-          <h3 className="text-lg font-semibold mb-4">Időadatok</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm text-muted-foreground">Indulás időpontja</p>
-              <p className="font-mono">
-                {flight.startTime.toLocaleString('hu-HU', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Érkezés időpontja</p>
-              <p className="font-mono">
-                {flight.endTime.toLocaleString('hu-HU', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
-              </p>
-            </div>
-          </div>
-        </div>
+        {/* Footer */}
+        <footer className="mt-16 pt-8 border-t border-border text-center text-muted-foreground text-sm">
+          <p>NERLines - Repülési adatok elemzése és vizualizációja</p>
+        </footer>
       </main>
     </div>
   );
