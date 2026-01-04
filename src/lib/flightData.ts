@@ -5,7 +5,7 @@ import type { Flight, FlightStats, DailyFlightData, MonthlyFlightData, CountryVi
 const COST_PER_HOUR_EUR = 5000;
 
 export async function loadFlightData(): Promise<Flight[]> {
-  const response = await fetch('/data/flight_tracker_data.csv');
+  const response = await fetch('./data/flight_tracker_data.csv');
   const csvText = await response.text();
 
   return new Promise((resolve, reject) => {
