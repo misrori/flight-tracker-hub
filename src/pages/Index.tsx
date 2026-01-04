@@ -112,6 +112,12 @@ const Index = () => {
               icon={MapPin}
               delay={200}
             />
+            <StatCard
+              title="Becsült összköltség"
+              value={formatCurrency(stats.totalCost)}
+              icon={Banknote}
+              delay={300}
+            />
           </div>
         )}
 

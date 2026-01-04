@@ -125,6 +125,12 @@ const Analytics = () => {
               icon={Clock}
               delay={200}
             />
+            <StatCard
+              title="Összköltség"
+              value={formatCurrency(stats.totalCost)}
+              icon={Banknote}
+              delay={300}
+            />
           </div>
         )}
 

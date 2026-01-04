@@ -114,6 +114,10 @@ export function FlightList({ flights, selectedFlight, onSelectFlight }: FlightLi
                     <Route className="w-3 h-3" />
                     <span>{Math.round(distance)} km</span>
                   </div>
+                  <div className="flex items-center gap-1 text-accent font-mono">
+                    <DollarSign className="w-3 h-3" />
+                    <span>~{formatCurrency(cost)}</span>
+                  </div>
                 </div>
               </button>
             );

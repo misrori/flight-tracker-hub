@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { loadFlightData, formatDuration, formatCurrency, estimateFlightCost, calculateDistance } from '@/lib/flightData';
 import type { Flight } from '@/types/flight';
-import { Loader2, ArrowLeft, Plane, Clock, Route, Calendar, ArrowRight, Play, Pause, RotateCcw, ExternalLink } from 'lucide-react';
+import { Loader2, ArrowLeft, Plane, Clock, Route, DollarSign, Calendar, ArrowRight, Play, Pause, RotateCcw, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 
@@ -401,6 +401,13 @@ const FlightDetail = () => {
               Indulás/Érkezés
             </div>
             <p className="font-mono text-sm">{flight.startTime} - {flight.endTime}</p>
+          </div>
+          <div className="glass-card p-4">
+            <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+              <DollarSign className="w-4 h-4" />
+              Kalkulált költség
+            </div>
+            <p className="font-mono text-lg text-accent">{formatCurrency(cost)}</p>
           </div>
         </div>
 
