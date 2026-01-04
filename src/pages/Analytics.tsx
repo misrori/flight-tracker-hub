@@ -1,41 +1,36 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Header } from '@/components/Header';
 import { CountryStatsTable } from '@/components/CountryStatsTable';
 import { FlightChart } from '@/components/FlightChart';
 import { ViewToggle } from '@/components/ViewToggle';
 import { StatCard } from '@/components/StatCard';
+import { AircraftFilter } from '@/components/AircraftFilter';
+import { CountryMap } from '@/components/CountryMap';
 import { 
   loadFlightData, 
   getFlightStats, 
   getDailyFlightData, 
   getMonthlyFlightData,
+  getAircraftList,
+  getCountryVisits,
   formatDuration,
   formatCurrency 
 } from '@/lib/flightData';
-import { getCountryStats } from '@/lib/countries';
-import type { Flight, DailyFlightData, MonthlyFlightData, FlightStats } from '@/types/flight';
+import type { Flight, DailyFlightData, MonthlyFlightData, FlightStats, AircraftInfo } from '@/types/flight';
 import { Loader2, Globe, TrendingUp, Clock, Banknote } from 'lucide-react';
 
 const Analytics = () => {
-  const [flights, setFlights] = useState<Flight[]>([]);
-  const [stats, setStats] = useState<FlightStats | null>(null);
-  const [dailyData, setDailyData] = useState<DailyFlightData[]>([]);
-  const [monthlyData, setMonthlyData] = useState<MonthlyFlightData[]>([]);
+  const [allFlights, setAllFlights] = useState<Flight[]>([]);
+  const [aircraftList, setAircraftList] = useState<AircraftInfo[]>([]);
+  const [selectedAircraft, setSelectedAircraft] = useState<string | null>(null);
   const [chartView, setChartView] = useState<'daily' | 'monthly'>('monthly');
   const [loading, setLoading] = useState(true);
-  const [uniqueCountries, setUniqueCountries] = useState(0);
 
   useEffect(() => {
     loadFlightData()
       .then(data => {
-        setFlights(data);
-        setStats(getFlightStats(data));
-        setDailyData(getDailyFlightData(data));
-        setMonthlyData(getMonthlyFlightData(data));
-        
-        const countryStats = getCountryStats(data);
-        setUniqueCountries(countryStats.size);
-        
+        setAllFlights(data);
+        setAircraftList(getAircraftList(data));
         setLoading(false);
       })
       .catch(err => {
@@ -43,6 +38,16 @@ const Analytics = () => {
         setLoading(false);
       });
   }, []);
+
+  const flights = useMemo(() => {
+    if (!selectedAircraft) return allFlights;
+    return allFlights.filter(f => f.registration === selectedAircraft);
+  }, [allFlights, selectedAircraft]);
+
+  const stats = useMemo(() => getFlightStats(flights), [flights]);
+  const dailyData = useMemo(() => getDailyFlightData(flights), [flights]);
+  const monthlyData = useMemo(() => getMonthlyFlightData(flights), [flights]);
+  const countryVisits = useMemo(() => getCountryVisits(flights), [flights]);
 
   if (loading) {
     return (
@@ -60,11 +65,20 @@ const Analytics = () => {
       <Header />
       
       <main className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Elemzések</h1>
-          <p className="text-muted-foreground">
-            Részletes statisztikák és aggregált adatok a repülésekről
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Elemzések</h1>
+            <p className="text-muted-foreground">
+              Részletes statisztikák és aggregált adatok a repülésekről
+            </p>
+          </div>
+          <div className="w-full sm:w-64">
+            <AircraftFilter 
+              aircraft={aircraftList}
+              selectedAircraft={selectedAircraft}
+              onSelectAircraft={setSelectedAircraft}
+            />
+          </div>
         </div>
 
         {/* Summary Stats */}
@@ -72,7 +86,7 @@ const Analytics = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             <StatCard
               title="Érintett országok"
-              value={uniqueCountries}
+              value={stats.uniqueCountries}
               subtitle="Különböző ország"
               icon={Globe}
               delay={0}
@@ -100,6 +114,11 @@ const Analytics = () => {
             />
           </div>
         )}
+
+        {/* Country Map */}
+        <div className="mb-8">
+          <CountryMap countryVisits={countryVisits} />
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Country Stats Table */}

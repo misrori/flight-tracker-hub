@@ -1,8 +1,7 @@
 import Papa from 'papaparse';
-import type { Flight, FlightPoint, FlightStats, DailyFlightData, MonthlyFlightData, LocationData } from '@/types/flight';
+import type { Flight, FlightStats, DailyFlightData, MonthlyFlightData, CountryVisit, AircraftInfo } from '@/types/flight';
 
-// Cost estimation based on aircraft type and flight duration
-// Average private jet operating cost: €3,000-10,000 per flight hour
+// Cost estimation: Average private jet operating cost
 const COST_PER_HOUR_EUR = 5000;
 
 export async function loadFlightData(): Promise<Flight[]> {
@@ -14,41 +13,26 @@ export async function loadFlightData(): Promise<Flight[]> {
       header: true,
       complete: (results) => {
         const flights: Flight[] = results.data
-          .filter((row: any) => row.icao && row.start_time)
-          .map((row: any) => {
-            let routeData: FlightPoint[] = [];
-            try {
-              if (row.route_data) {
-                const parsed = JSON.parse(row.route_data);
-                // Data format: [[lat, lon, alt, speed, timestamp], ...]
-                routeData = parsed.map((point: number[]) => ({
-                  lat: point[0],
-                  lon: point[1],
-                  alt: point[2],
-                  timestamp: point[4],
-                }));
-              }
-            } catch (e) {
-              console.warn('Failed to parse route data:', e);
-            }
-
-            return {
-              icao: row.icao,
-              registration: row.registration,
-              operator: row.operator || 'Unknown',
-              type: row.type || 'Private Jet',
-              startTime: new Date(row.start_time),
-              endTime: new Date(row.end_time),
-              startLat: parseFloat(row.start_lat),
-              startLon: parseFloat(row.start_lon),
-              endLat: parseFloat(row.end_lat),
-              endLon: parseFloat(row.end_lon),
-              durationMinutes: parseFloat(row.duration_minutes) || 0,
-              pointsCount: parseInt(row.points_count) || 0,
-              status: row.status || 'completed',
-              routeData,
-            };
-          });
+          .filter((row: any) => row.Registration && row.Date)
+          .map((row: any, index: number) => ({
+            id: `${row.Registration}-${index}`,
+            registration: row.Registration,
+            type: row.Type || 'Unknown',
+            operator: row.Operator || '',
+            date: new Date(row.Date),
+            startTime: row.Start_Time || '',
+            endTime: row.End_Time || '',
+            durationMinutes: parseFloat(row.Duration_Min) || 0,
+            startLat: parseFloat(row.Start_Lat) || 0,
+            startLon: parseFloat(row.Start_Lon) || 0,
+            endLat: parseFloat(row.End_Lat) || 0,
+            endLon: parseFloat(row.End_Lon) || 0,
+            status: row.Status || 'Landed',
+            startCity: row.start_city || '',
+            startCountry: row.start_country || '',
+            endCity: row.end_city || '',
+            endCountry: row.end_country || '',
+          }));
         resolve(flights);
       },
       error: (error) => reject(error),
@@ -57,7 +41,7 @@ export async function loadFlightData(): Promise<Flight[]> {
 }
 
 export function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371; // Earth radius in km
+  const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
   const a = 
@@ -79,30 +63,70 @@ export function getFlightStats(flights: Flight[]): FlightStats {
     return sum + calculateDistance(f.startLat, f.startLon, f.endLat, f.endLon);
   }, 0);
   
-  const estimatedCostEur = estimateFlightCost(totalDurationMinutes);
-  
-  // Get unique countries (simplified - would need geocoding for real implementation)
-  const locations = new Set<string>();
+  const countries = new Set<string>();
   flights.forEach(f => {
-    locations.add(`${Math.round(f.startLat)},${Math.round(f.startLon)}`);
-    locations.add(`${Math.round(f.endLat)},${Math.round(f.endLon)}`);
+    if (f.startCountry) countries.add(f.startCountry);
+    if (f.endCountry) countries.add(f.endCountry);
   });
 
   return {
     totalFlights: flights.length,
     totalDurationMinutes,
     totalDistanceKm: Math.round(totalDistanceKm),
-    estimatedCostEur,
-    countriesVisited: Array.from(locations),
+    estimatedCostEur: estimateFlightCost(totalDurationMinutes),
+    uniqueCountries: countries.size,
     averageFlightDuration: Math.round(totalDurationMinutes / flights.length) || 0,
   };
+}
+
+export function getCountryVisits(flights: Flight[]): CountryVisit[] {
+  const countryMap = new Map<string, { visits: number; departures: number; arrivals: number }>();
+  
+  flights.forEach(flight => {
+    if (flight.startCountry) {
+      const data = countryMap.get(flight.startCountry) || { visits: 0, departures: 0, arrivals: 0 };
+      data.visits++;
+      data.departures++;
+      countryMap.set(flight.startCountry, data);
+    }
+    if (flight.endCountry) {
+      const data = countryMap.get(flight.endCountry) || { visits: 0, departures: 0, arrivals: 0 };
+      data.visits++;
+      data.arrivals++;
+      countryMap.set(flight.endCountry, data);
+    }
+  });
+
+  return Array.from(countryMap.entries())
+    .map(([country, data]) => ({ country, ...data }))
+    .sort((a, b) => b.visits - a.visits);
+}
+
+export function getAircraftList(flights: Flight[]): AircraftInfo[] {
+  const aircraftMap = new Map<string, AircraftInfo>();
+  
+  flights.forEach(flight => {
+    const existing = aircraftMap.get(flight.registration);
+    if (existing) {
+      existing.flightCount++;
+    } else {
+      aircraftMap.set(flight.registration, {
+        registration: flight.registration,
+        type: flight.type,
+        operator: flight.operator,
+        flightCount: 1,
+      });
+    }
+  });
+
+  return Array.from(aircraftMap.values()).sort((a, b) => b.flightCount - a.flightCount);
 }
 
 export function getDailyFlightData(flights: Flight[]): DailyFlightData[] {
   const dailyMap = new Map<string, { flights: number; duration: number }>();
   
   flights.forEach(flight => {
-    const dateStr = flight.startTime.toISOString().split('T')[0];
+    const dateStr = flight.date.toISOString().split('T')[0];
     const existing = dailyMap.get(dateStr) || { flights: 0, duration: 0 };
     dailyMap.set(dateStr, {
       flights: existing.flights + 1,
@@ -119,7 +143,7 @@ export function getMonthlyFlightData(flights: Flight[]): MonthlyFlightData[] {
   const monthlyMap = new Map<string, { flights: number; duration: number }>();
   
   flights.forEach(flight => {
-    const monthStr = flight.startTime.toISOString().slice(0, 7);
+    const monthStr = flight.date.toISOString().slice(0, 7);
     const existing = monthlyMap.get(monthStr) || { flights: 0, duration: 0 };
     monthlyMap.set(monthStr, {
       flights: existing.flights + 1,
@@ -135,26 +159,6 @@ export function getMonthlyFlightData(flights: Flight[]): MonthlyFlightData[] {
       estimatedCost: estimateFlightCost(data.duration),
     }))
     .sort((a, b) => a.month.localeCompare(b.month));
-}
-
-export function getLocationHeatmap(flights: Flight[]): LocationData[] {
-  const locationMap = new Map<string, LocationData>();
-  
-  flights.forEach(flight => {
-    // Add start location
-    const startKey = `${flight.startLat.toFixed(2)},${flight.startLon.toFixed(2)}`;
-    const startData = locationMap.get(startKey) || { lat: flight.startLat, lon: flight.startLon, count: 0 };
-    startData.count++;
-    locationMap.set(startKey, startData);
-    
-    // Add end location
-    const endKey = `${flight.endLat.toFixed(2)},${flight.endLon.toFixed(2)}`;
-    const endData = locationMap.get(endKey) || { lat: flight.endLat, lon: flight.endLon, count: 0 };
-    endData.count++;
-    locationMap.set(endKey, endData);
-  });
-
-  return Array.from(locationMap.values()).sort((a, b) => b.count - a.count);
 }
 
 export function formatDuration(minutes: number): string {
