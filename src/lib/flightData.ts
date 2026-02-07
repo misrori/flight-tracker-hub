@@ -5,22 +5,24 @@ import type { Flight, FlightStats, DailyFlightData, MonthlyFlightData, CountryVi
 const COST_PER_HOUR_EUR = 5000;
 
 export async function loadFlightData(): Promise<Flight[]> {
-  const response = await fetch('./data/flight_tracker_data.csv');
+  const response = await fetch('./data/summary_all_with_geo.csv');
   const csvText = await response.text();
 
   return new Promise((resolve, reject) => {
     Papa.parse(csvText, {
       header: true,
+      delimiter: ';', // New CSV uses semicolon delimiter
       complete: (results) => {
         const flights: Flight[] = results.data
-          .filter((row: any) => (row.Registration || row.registration) && row.Date)
+          .filter((row: any) => row.Lajstromjel && row.Date)
           .map((row: any, index: number) => {
-            const registration = row.registration || row.Registration;
+            const registration = row.Lajstromjel; // Hungarian: Lajstromjel = Registration
+            const hexCode = row['HEX kód'] || row.plane_id || '';
             return {
               id: `${registration}-${index}`,
               registration: registration,
-              type: row.Type || 'Unknown',
-              operator: row.Operator || '',
+              type: row['Típus'] || 'Unknown', // Hungarian: Típus = Type
+              operator: row['Kötődés'] || '', // Hungarian: Kötődés = Connection/Owner
               date: new Date(row.Date),
               startTime: row.Start_Time || '',
               endTime: row.End_Time || '',
@@ -34,8 +36,8 @@ export async function loadFlightData(): Promise<Flight[]> {
               startCountry: row.Start_Country || '',
               endCity: row.End_City || '',
               endCountry: row.End_Country || '',
-              owner: row.owner || 'Unknown',
-              icao: row.icao || '',
+              owner: row['Kötődés'] || 'Unknown', // Hungarian: Kötődés = Connection/Owner
+              icao: hexCode,
             };
           });
         resolve(flights);
